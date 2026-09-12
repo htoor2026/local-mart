@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Environment
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Large/raw data
+data/raw/
+data/external/statscan/profile/
+data/processed/
+data/interim/
+
+# Generated outputs
+models/
+*.cbm
+*.pkl
+*.joblib
+
+# Mongo / logs
+logs/
+monitoring/logs/
+
+# Large file types
+*.parquet
+*.zip
+# Project datasets
+notebooks/data/
+data/
+
+# Training artifacts
+catboost_info/
+
+# Notebook/API caches
+notebooks/cache/
+
+# Anaconda project metadata
+anaconda_projects/
+
+# Large analytical files
+*.parquet
+*.zip
+
+# Environment
+.env
+.DS_Store
