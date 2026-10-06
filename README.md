@@ -1,181 +1,356 @@
-LocalMart AI — Geo-Aware Retail Promotion Intelligence
-Portfolio project: a store-level retail decision system that combines local 5 km context, weather, demand forecasting, promotion uplift modeling, product economics, and constrained optimization to recommend which products each GTA store should promote.
+# LocalMart AI — Geo-Aware Retail Promotion Intelligence
 
-Important Project Disclaimer
-The GTA store geography, Statistics Canada demographics, OpenStreetMap context, and historical weather are real.
-The long-version retail environment uses a semi-synthetic 300-product catalog, historical sales, inventory, margins, vendor funding, promotion assignments, and treatment effects because real Walmart Canada store-level sales and experiment outcomes are not publicly available.
-Therefore, the reported uplift and profit results evaluate the decision methodology in a controlled semi-synthetic environment. They are not claims about actual Walmart Canada sales, causal lift, or profit.
-Business Problem
-Retail promotion decisions should not be based only on the deepest discount, the highest expected sales, or the highest promotion uplift. A promotion can increase units sold while still destroying margin.
-LocalMart AI asks:
-For each GTA store and week, which products should be promoted to maximize incremental profit while respecting flyer-space, category, budget, and inventory constraints?
+LocalMart AI is an end-to-end retail decision system that combines **local market context, weather, demand forecasting, promotion uplift modeling, unit economics, and constrained optimization** to recommend which products each GTA store should promote.
 
-Business Impact
-The final evaluation compares four promotion strategies in the semi-synthetic environment:
-Strategy	Selected Products	True Incremental Profit	Avg. True Profit / Selection	Positive-Profit Rate
-Oracle	3,600	$26,451.58	$7.35	100.0%
-Profit Optimizer	3,600	$20,615.43	$5.73	97.1%
-Highest Predicted Uplift	3,242	-$10,097.66	-$3.11	38.7%
-Largest Discount	3,312	-$16,619.31	-$5.02	26.8%
+The project is designed around a practical retail question:
 
+> **For each GTA store and week, which products should be promoted to maximize incremental profit while respecting flyer-space, category, budget, and inventory constraints?**
 
-Key results
-- Demand forecasting MAE improved by 29.7% over a Lag-1 validation baseline.
-- CatBoost test performance: MAE 3.09, RMSE 3.94, WMAPE 21.90%.
-- Promotion uplift model: MAE 0.96, RMSE 1.35, correlation 0.828.
-- Top 10% predicted promotion opportunities achieved 6.67 true incremental units versus 3.08 overall, a 2.17× enrichment.
-- Profit Optimizer achieved $20,615.43 in simulated true incremental profit.
-- 97.1% of optimizer selections were profitable.
-- Oracle regret was 22.1%.
-- Relative to the largest-discount strategy, the optimizer created an absolute simulated profit swing of approximately $37.2K.
-Main business lesson
-Highest sales uplift does not necessarily mean highest profit.
+## Important Project Disclaimer
 
-The best promotion decision combines expected treatment effect with margin, discount depth, vendor funding, inventory, and operating constraints.
-System Architecture
+The GTA store geography, Statistics Canada demographics, OpenStreetMap context, and historical weather used in this project are real.
+
+The long-version retail environment uses a **semi-synthetic** 300-product catalog, historical sales, inventory, margins, vendor funding, promotion assignments, and treatment effects because real Walmart Canada store-level sales and experimentation outcomes are not publicly available.
+
+Therefore:
+
+- reported uplift and profit results evaluate the methodology in a controlled semi-synthetic environment
+- reported profit is **not actual Walmart Canada profit**
+- reported treatment effects are **not claims about real Walmart causal lift**
+- the project should be interpreted as a portfolio decision-support system rather than a production Walmart system
+
+## Business Problem
+
+Retail promotion decisions should not be based only on:
+
+- the deepest discount
+- the highest predicted sales
+- the largest predicted promotion uplift
+
+A promotion can increase units sold while still reducing profit.
+
+LocalMart AI instead combines:
+
+**expected demand + promotion uplift + margin + discount economics + vendor funding + inventory + business constraints**
+
+to select the most profitable feasible promotion plan.
+
+## Business Impact
+
+The final semi-synthetic evaluation compares four strategies:
+
+| Strategy | Selected Products | True Incremental Profit | Avg. True Profit / Selection | Positive-Profit Rate |
+|---|---:|---:|---:|---:|
+| Oracle | 3,600 | $26,451.58 | $7.35 | 100.0% |
+| Profit Optimizer | 3,600 | $20,615.43 | $5.73 | 97.1% |
+| Highest Predicted Uplift | 3,242 | -$10,097.66 | -$3.11 | 38.7% |
+| Largest Discount | 3,312 | -$16,619.31 | -$5.02 | 26.8% |
+
+### Key results
+
+- Demand forecasting test MAE: **3.09 units**
+- Demand forecasting test RMSE: **3.94**
+- Demand forecasting test WMAPE: **21.90%**
+- Validation MAE improvement vs Lag-1 baseline: **29.71%**
+- Uplift MAE: **0.96 incremental units**
+- Uplift RMSE: **1.35**
+- Uplift correlation: **0.828**
+- Overall true uplift: **3.08 units**
+- Top-10% true uplift: **6.67 units**
+- Top-10% uplift enrichment: **2.17×**
+- Profit Optimizer simulated true incremental profit: **$20,615.43**
+- Oracle simulated true incremental profit: **$26,451.58**
+- Oracle regret: **22.06%**
+- Positive-profit optimizer selections: **97.06%**
+- Absolute profit swing vs largest-discount strategy: approximately **$37.2K**
+
+### Main business lesson
+
+> **Highest sales uplift does not necessarily mean highest profit.**
+
+The best promotion decision combines treatment effect with product economics and operational constraints.
+
+## Architecture Flow
+
 ```mermaid
-flowchart LR
-    A[Real GTA Context<br/>StatsCan + OSM + Weather]
-    B[Semi-Synthetic Retail History<br/>300 Products + Sales + Inventory + Margins]
-    C[Demand Forecasting<br/>CatBoost]
-    D[Promotion Uplift<br/>T-Learner / CATE]
-    E[Profit Economics<br/>Incremental Profit]
-    F[Constrained Optimization<br/>PuLP Integer Programming]
-    G[Store-Specific Recommendations]
-    H[Streamlit Dashboard]
+flowchart TD
+    A[Real GTA Store Context] --> A1[GTA Store Locations]
+    A --> A2[StatsCan Demographics]
+    A --> A3[OpenStreetMap 5 km Context]
+    A --> A4[ECCC Weather]
 
-    A --> C
+    B[Semi-Synthetic Retail Layer] --> B1[300 Products]
+    B --> B2[Weekly Sales]
+    B --> B3[Promotions]
+    B --> B4[Inventory]
+    B --> B5[Margins and Vendor Funding]
+    B --> B6[Known Treatment Effects]
+
+    A --> C[Feature Engineering]
     B --> C
-    A --> D
-    B --> D
-    C --> E
-    D --> E
-    E --> F
-    F --> G
+
+    C --> D[Demand Forecasting<br/>CatBoost]
+    C --> E[Promotion Uplift<br/>T-Learner / CATE]
+
+    D --> F[Expected Demand]
+    E --> G[Predicted Incremental Units]
+
+    F --> H[Profit Economics]
     G --> H
+
+    H --> I[Predicted Incremental Profit]
+
+    I --> J[PuLP Integer Optimization]
+
+    J --> K[Business Constraints]
+    K --> K1[Max 20 Flyer Slots]
+    K --> K2[Max 4 Products per Category]
+    K --> K3[Max $300 Promo Budget]
+    K --> K4[Inventory Limits]
+
+    J --> L[Store-Level Promotion Recommendations]
+    L --> M[Streamlit Dashboard]
 ```
-Local store context
-        ↓
-Expected product demand
-        ↓
-Expected promotion uplift
-        ↓
-Incremental units
-        ↓
-Incremental profit
-        ↓
-Business constraints
-        ↓
-Optimized store-level promotion plan
-Data Sources
-Real data
-Source	Use
-GTA Walmart store locations	Store geography and store-level decision units
-OpenStreetMap	5 km commercial, office, school, university, retail, and transit context
-Statistics Canada Census	Population, income, employment, household, and density features
-Environment and Climate Change Canada	Historical GTA weather context
-M5 Forecasting dataset	Separate forecasting benchmark and modeling reference
 
+## End-to-End Decision Flow
 
-Semi-synthetic data
+```text
+Real GTA context
++ real demographics
++ real OSM 5 km features
++ real weather
++ semi-synthetic retail history
+        ↓
+CatBoost demand forecasting
+        ↓
+T-Learner promotion uplift
+        ↓
+Predicted incremental units
+        ↓
+Profit economics
+        ↓
+PuLP integer optimization
+        ↓
+Store-specific flyer recommendations
+        ↓
+Streamlit dashboard
+```
+
+## Data Sources
+
+### Real data
+
+| Source | Use |
+|---|---|
+| GTA Walmart store locations | Store geography and decision units |
+| OpenStreetMap | 5 km commercial, office, education, retail and transit context |
+| Statistics Canada Census | Population, density, income, employment and household features |
+| Environment and Climate Change Canada | Historical GTA weather context |
+| M5 Forecasting dataset | Separate forecasting benchmark and modeling reference |
+
+### Semi-synthetic retail data
+
 The long-version evaluation creates a controlled retail environment containing:
+
+- 15 GTA stores
 - 300 products across 10 categories
-- weekly product-store history
-- promotion assignment and discount depth
+- 104 weeks of store-product history
+- weekly promotion assignment
+- discount depth
 - vendor funding
 - inventory
 - unit margins
-- baseline expected demand
-- known true heterogeneous promotion effects
+- expected baseline demand
+- known heterogeneous promotion effects
 - simulated sales outcomes
-This provides known ground truth for uplift and optimization evaluation.
-Technical Approach
-1. Geo-aware local context
-Each GTA Walmart location is treated as the center of a 5 km catchment area. Features include population, density, median household income, employment, household size, offices, commercial/retail activity, universities/colleges, schools, transit context, and weather.
-2. Demand Forecasting
-A CatBoost regression model predicts weekly product demand using lagged demand, rolling means, store/product/category identifiers, price, promotion, inventory, weather, calendar features, and local 5 km context.
-Leakage variables such as known true uplift and simulated true profit are excluded.
-Metric	Result
-Test MAE	3.090
-Test RMSE	3.944
-Test WMAPE	21.90%
-Validation MAE improvement vs Lag-1	29.7%
 
+Known ground truth makes it possible to evaluate both uplift ranking and profit optimization directly.
 
-3. Promotion Uplift Modeling
-A T-Learner estimates heterogeneous treatment effects using two CatBoost outcome models:
-Control model → expected units without promotion
+## Technical Approach
+
+### 1. Geo-aware local context
+
+Each GTA Walmart location is treated as the center of a **5 km catchment**.
+
+Features include:
+
+- population
+- population density
+- median household income
+- employment rate
+- average household size
+- offices
+- commercial and retail activity
+- universities and colleges
+- schools
+- rail/transit context
+- weather
+
+### 2. Demand Forecasting
+
+A CatBoost regression model predicts weekly product demand using:
+
+- product, category and store identifiers
+- lagged demand
+- rolling demand statistics
+- regular and promotional prices
+- promotion status
+- inventory
+- weather
+- calendar features
+- local demographic and commercial context
+
+Ground-truth treatment variables and simulated true profit are excluded from the prediction feature set.
+
+| Metric | Result |
+|---|---:|
+| Test MAE | 3.090 |
+| Test RMSE | 3.944 |
+| Test WMAPE | 21.90% |
+| Validation MAE improvement vs Lag-1 | 29.71% |
+
+### 3. Promotion Uplift Modeling
+
+A **T-Learner** estimates heterogeneous promotion effects with two CatBoost outcome models:
+
+```text
+Control model   → expected units without promotion
 Treatment model → expected units with promotion
 
-Treatment prediction - Control prediction = Predicted promotion uplift
-Only pre-treatment/context features are used.
-Metric	Result
-Uplift MAE	0.957
-Uplift RMSE	1.345
-Correlation	0.828
-Overall true uplift	3.08 units
-Top-10% true uplift	6.67 units
-Top-10% enrichment	2.17×
+Predicted treatment units
+-
+Predicted control units
+=
+Predicted promotion uplift
+```
 
+Only pre-treatment and contextual features are used.
 
-4. Profit-Aware Decision Layer
-Control profit = predicted control units × regular unit margin
-Promotion profit = predicted promoted units × promoted unit margin
-Predicted incremental profit = promotion profit - control profit
-Vendor funding and discount economics are incorporated into promoted unit cost.
-5. Constrained Promotion Optimization
-The final plan is selected with integer programming using PuLP.
+| Metric | Result |
+|---|---:|
+| Uplift MAE | 0.957 |
+| Uplift RMSE | 1.345 |
+| Correlation | 0.828 |
+| Overall true uplift | 3.08 units |
+| Top-10% true uplift | 6.67 units |
+| Top-10% enrichment | 2.17× |
+
+### 4. Profit-Aware Decision Layer
+
+The system translates predicted units into economics:
+
+```text
+Control Profit
+=
+Predicted Control Units × Regular Unit Margin
+```
+
+```text
+Promotion Profit
+=
+Predicted Promoted Units × Promoted Unit Margin
+```
+
+```text
+Predicted Incremental Profit
+=
+Promotion Profit - Control Profit
+```
+
+Vendor funding and discount economics are incorporated into the promoted unit economics.
+
+### 5. Constrained Promotion Optimization
+
+The final promotion plan is selected with **PuLP integer programming**.
+
 Objective:
-Maximize Σ Predicted Incremental Profit × Product Selected
+
+```text
+Maximize:
+Σ Predicted Incremental Profit × Product Selected
+```
+
 Constraints:
-- maximum 20 flyer slots per store/week
-- maximum 4 products per category
-- maximum $300 promotion budget per store/week
+
+- maximum **20 flyer slots** per store/week
+- maximum **4 products per category**
+- maximum **$300 promotion budget** per store/week
 - inventory availability
 - positive predicted economics for candidate promotions
-Observed final constraints passed:
-- max flyer slots: 20
-- max category count: 4
-- max promotion spend: $298.02
-Streamlit Dashboard
+
+Final QA showed:
+
+- max flyer slots used: **20**
+- max category count: **4**
+- max promotion spend: **$298.02**
+
+## Final Evaluation Scope
+
+The final test evaluation contains:
+
+- **15 stores**
+- **300 products**
+- **12 test weeks**
+- **54,000 store-product-week uplift rows**
+- **3,600 optimized promotion selections**
+- test period: **2026-06-22 to 2026-09-07**
+
+## Streamlit Dashboard
+
 The dashboard is designed for two audiences.
-Business View
+
+### Business View
+
 - executive recommendation summary
 - store and week selectors
-- optimized flyer
-- predicted uplift and incremental profit
-- promotion spend and business rationale
+- optimized flyer recommendations
+- predicted uplift
+- predicted incremental profit
+- promotion spend
 - strategy comparison
-- profit by store/category
-Technical Build
+- profit by store and category
+
+### Technical Build
+
 - data provenance
-- end-to-end architecture
-- demand model and evaluation
-- uplift model and evaluation
+- system architecture
+- demand-model evaluation
+- uplift-model evaluation
 - profit economics
-- optimization formulation and constraints
-- limitations and production extension
-Dashboard Screenshots
-Save final clean screenshots under docs/images/ using these names.
-Business overview
- 
-Store recommendations
- 
-Technical architecture
- 
-Uplift evaluation
- 
-Strategy comparison
- 
-Repository Structure
-retail-promotion-intelligence/
-│
+- optimization formulation
+- constraints
+- limitations
+- production extension
+
+## Dashboard Screenshots
+
+### Business Overview
+
+![Business Overview](docs/images/business-overview.png)
+
+### Store Recommendations
+
+![Store Recommendations](docs/images/store-recommendations.png)
+
+### Technical Architecture
+
+![Technical Architecture](docs/images/technical-architecture.png)
+
+## Repository Structure
+
+```text
+local-mart/
 ├── app.py
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
+├── capture_screenshots.py
+│
+├── docs/
+│   └── images/
 │
 ├── notebooks/
+│   ├── 01.ipynb
 │   ├── 02_build_enriched_sales.ipynb
 │   ├── 03_eda_feature_engineering.ipynb
 │   ├── 04_time_split_and_baseline.ipynb
@@ -196,38 +371,74 @@ retail-promotion-intelligence/
 │   ├── 17_demand_prediction_model.ipynb
 │   ├── 18_promotion_uplift_modeling.ipynb
 │   ├── 19_profit_optimization_v2.ipynb
-│   └── 20_final_long_version_evaluation.ipynb
+│   ├── 20_final_long_version_evaluation.ipynb
+│   └── results/
 │
 ├── results/
-│   └── selected lightweight final outputs
-│
-├── models/
-├── docs/images/
-└── data/                 # ignored local datasets
-For the public repo, keep final lightweight outputs under one root results/ folder even if your current local notebooks generated some files under notebooks/results/.
-How to Run Locally
-1. Clone
-git clone https://github.com/htoor2026/walmart.git
-cd walmart
-2. Create environment
+└── data/              # large/raw local datasets are ignored
+```
+
+## How to Run Locally
+
+Python 3.11 is recommended.
+
+### 1. Clone
+
+```bash
+git clone https://github.com/htoor2026/local-mart.git
+cd local-mart
+```
+
+### 2. Create the environment
+
+```bash
 conda create -n retail-ai python=3.11 -y
 conda activate retail-ai
-3. Install dependencies
+```
+
+### 3. Install dashboard dependencies
+
+```bash
 pip install -r requirements.txt
-4. Run Streamlit
+```
+
+### 4. Run the dashboard
+
+```bash
 python -m streamlit run app.py
-Open http://localhost:8501.
-Key Technologies
-Python, pandas, NumPy, CatBoost, LightGBM, XGBoost, scikit-learn, PuLP, Streamlit, Plotly, DuckDB, MongoDB, GeoPandas, OSMnx, Statistics Canada Census, Environment and Climate Change Canada weather, Parquet/PyArrow.
-Limitations
+```
+
+Then open:
+
+```text
+http://localhost:8501
+```
+
+## Dashboard Dependencies
+
+The deployed dashboard uses:
+
+- Streamlit
+- pandas
+- NumPy
+- PyArrow
+- Plotly
+
+Training notebooks additionally use tools such as CatBoost, LightGBM, XGBoost, scikit-learn, PuLP, DuckDB, MongoDB/PyMongo, GeoPandas, and OSMnx.
+
+## Limitations
+
 - Real Walmart Canada store-level sales outcomes are not publicly available.
-- Long-version sales, margins, inventory, and treatment effects are semi-synthetic.
+- Product sales, margins, inventory and treatment effects in the long-version evaluation are semi-synthetic.
 - Reported simulated profit is not actual Walmart Canada profit.
-- Pearson-area weather is used as a GTA-wide proxy.
+- Pearson-area weather is used as a GTA-wide weather proxy.
 - The T-Learner is a baseline heterogeneous-treatment estimator.
-- The optimization assumes modeled economics and constraints are correctly specified.
-- Real deployment would require live POS sales, inventory, pricing, promotion history, vendor funding, and experiment outcomes.
-Future Production Extension
+- Optimization results depend on the quality of modeled economics and business constraints.
+- A real production system would require live POS sales, inventory, pricing, promotion history, vendor funding and experimentation outcomes.
+
+## Future Production Extension
+
+```text
 Live Retail Data
         ↓
 Validated Feature Pipeline
@@ -245,7 +456,23 @@ Decision Dashboard
 Monitoring + Drift Detection
         ↓
 Retraining
-Potential additions: FastAPI, MLflow, Docker, scheduled ingestion, data validation, drift monitoring, automated retraining, CI/CD, and cloud deployment.
-Project Takeaway
+```
+
+Potential extensions include:
+
+- FastAPI serving
+- MLflow experiment tracking and model registry
+- Docker
+- scheduled ingestion
+- data validation
+- drift monitoring
+- automated retraining
+- CI/CD
+- cloud deployment
+- stronger causal estimators such as X-Learner, doubly robust methods or causal forests
+
+## Project Takeaway
+
 This project is designed to show that a data scientist should not stop at model accuracy.
-Predict demand → estimate treatment effect → translate it into economics → optimize under business constraints → communicate the recommendation clearly.
+
+> **Predict demand → estimate treatment effect → translate it into economics → optimize under business constraints → communicate the recommendation clearly.**
