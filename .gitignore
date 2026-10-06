@@ -50,6 +50,9 @@ anaconda_projects/
 # Large analytical files
 *.parquet
 *.zip
+# Keep only lightweight dashboard artifacts
+!notebooks/results/promotion_uplift_tlearner_v1.parquet
+!notebooks/results/profit_optimized_promotions_v2.parquet
 
 # Environment
 .env
