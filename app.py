@@ -39,44 +39,6 @@ st.set_page_config(
 
 
 # ============================================================
-# PATHS
-# ============================================================
-
-from pathlib import Path
-
-PROJECT_ROOT = Path(
-    "/Users/toor/Desktop/M5/retail-promotion-intelligence"
-)
-
-KEY_FILE = (
-    "semisynthetic_demand_model_results_v1.csv"
-)
-
-
-def find_results_dir():
-
-    matches = list(
-        PROJECT_ROOT.rglob(KEY_FILE)
-    )
-
-    if len(matches) == 0:
-        raise FileNotFoundError(
-            f"Could not find {KEY_FILE}"
-        )
-
-    # The folder containing the actual final results
-    return matches[0].parent
-
-
-RESULTS_DIR = find_results_dir()
-
-st.write(
-    "Results folder:",
-    RESULTS_DIR
-)
-
-
-# ============================================================
 # CUSTOM UI
 # ============================================================
 
