@@ -1,0 +1,15 @@
+metric,value
+Demand test MAE,3.0900259083861585
+Demand test RMSE,3.94393328851571
+Demand test WMAPE %,21.90020685361431
+Uplift MAE,0.9567925671485491
+Uplift RMSE,1.3451956766073294
+Uplift correlation,0.8283060905799496
+Overall true uplift,3.0802111179012557
+Top 10% true uplift,6.672401182373144
+Top 10% uplift enrichment,2.1662155374984415
+Optimizer true incremental profit,20615.4271170764
+Oracle true incremental profit,26451.582075103874
+Oracle regret %,22.063538360227003
+Largest-discount true profit,-16619.311786719954
+Positive-profit optimizer selections %,97.05555555555556
